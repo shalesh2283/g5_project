@@ -1,7 +1,10 @@
 //REQUIRE OR IMPORT ALL THE MODULES HERE ONLY
 const express = require("express");
 require("dotenv").config();
-const mongoose = require("mongoose");
+
+//IMPORT DB CONNECTION
+const dbConnect = require("./config/database");
+
 const userRouter = require("./routes/userRoutes");
 
 //SET INSTANCES HERE ONLY
@@ -13,31 +16,24 @@ const app = express();
 const PORT = process.env.PORT || 4888;
 
 
-
 // I WANT TO RUN A MIDDLEWARE
 app.use(express.json());
 
-app.use(function(req,res,next){
-  console.log("THIS IS GLOBAL APP MIDDLWARE");
-  next()
-})
 
-//WE WILLL MAKE ROUTES
-
-//END POINTS : USER
-
-app.get("/",(req,res)=>{
-  res.send({message:"THIS IS DASHBOARD"})
-})
+//WE WILL MAKE ROUTES
 
 app.use("/api/user",userRouter)
 
 
-async function dbConnect() {
-  await mongoose.connect(process.env.CONNECTION_URL).then(() => {
-    console.log("DB CONNECTED");
-  });
-}
+
+// ERROR HANDLER
+
+app.use("/", function (req,res){
+  res.status(500).json({message: err.message});
+})
+
+
+
 
 dbConnect().then(() => {
   app.listen(PORT, () => {

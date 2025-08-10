@@ -1,6 +1,6 @@
 const User = require("../models/userModel");
 const bcrypt = require("bcrypt");
-// const generateToken = require("../utils/generateToken");
+const generateToken = require("../utils/generateToken");
 
 const registerUser = async (req, res) => {
   const { firstName, lastName, emailId, password } = req.body;
@@ -30,7 +30,7 @@ const registerUser = async (req, res) => {
 
     await newUser.save();
 
-    // const tokenGen = generateToken(newUser._id)
+    const tokenGen = generateToken(newUser)
 
     return res.status(201).json({
       message: "User Registered Successfully",
@@ -38,6 +38,7 @@ const registerUser = async (req, res) => {
         firstName,
         emailId,
         hashedPassword,
+        tokenGen
       },
     });
   } catch (err) {

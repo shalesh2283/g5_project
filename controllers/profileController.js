@@ -1,67 +1,86 @@
-const Profile = require("../models/profileModel");
 const User = require("../models/userModel");
+const bcrypt = require("bcrypt");
+const generateToken = require("../utils/generateToken");
 
+const registerUser = async (req, res) => {
+  const { firstName, lastName, emailId, password } = req.body;
 
-const getProfileDetails = async (req,res) =>{
-    try{
-        const data = await Profile.find({});
-        res.status(200).json({
-            message: "All Data of Profile",
-            data
-        })
-    }catch(err){
-        res.status(500).json({
-            error: err.message
-        })
-    }
-}
+  //VALIDATION
 
-const addProfileDetails = async (req,res) => {
-    const {profileImg,experience, githubProfile, linkedinProfile, codingPlatform, skills, location, achievements} = req.body;
-    // console.log(req.user);
+  if (!firstName || !emailId || !password) {
+    return res.status(400).send({ message: "Please Add all mandatory fields" });
+  }
 
-    const { _id} = req.userData;
-    // // console.log(_id);
-    console.log(_id);
+  //Check the user existing already in db or not
+  const userExists = await User.findOne({ emailId });
+  if (userExists) {
+    return res.status(400).json({ message: "Already Exist" });
+  }
 
-    const isUser = await User.find({userId:_id});
+  try {
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    // console.log(isUser);
+    //CREATE USER IN YOUR DATABASE
+    const newUser = await User.create({
+      firstName,
+      lastName,
+      emailId,
+      password: hashedPassword,
+    });
 
+    await newUser.save();
 
-    //Validate Data
-    if (!profileImg || !experience || !githubProfile || !linkedinProfile || !codingPlatform || !skills || !location || !achievements){
-        return res.status(500).json({
-            error: "Please add all fields!!"
-        });
-    }
-
-    const newProfile = await Profile.create({
-        userId: _id,
-        profileImg,
-        experience,
-        githubProfile,
-        linkedinProfile,
-        codingPlatform,
-        skills,
-        location,
-        achievements
-    })
-
-    const profileAdd = await newProfile.save();
+    const tokenGen = generateToken(newUser)
 
     return res.status(201).json({
-        message: "Data Added Successfully",
-        data: profileAdd
-    })
+      message: "User Registered Successfully",
+      data: {
+        firstName,
+        emailId,
+        hashedPassword,
+        tokenGen
+      },
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+};
 
+const loginUser = async (req, res) => {
+  const { emailId, password } = req.body;
 
-}
+  //Validation:
+  if (!emailId || !password) {
+    return res.status(400).send("Please Fill All the Details");
+  }
 
+  const userExists = await User.findOne({ emailId });
 
-const updateProfileDetails = async (req,res) =>{
-    return
+  if (!userExists) {
+    return res.status(400).send("User not found !!");
+  }
 
-}
+  //PASSWORD VERIFICATION: RIGHT OR WRONG
 
-module.exports = { getProfileDetails,addProfileDetails,updateProfileDetails};
+  //  if (password != userExists.password){
+  //     return res.status(401).send("Password is Wrong");
+  //  }
+
+  try {
+    const isMatched = await bcrypt.compare(password, userExists.password);
+
+    if (!isMatched) {
+      return res.status(401).send("Password is Wrong");
+    }
+
+    return res.status(200).json({
+      message: "User Logged In Successfully",
+      userName: userExists.firstName,
+      emailId: userExists.emailId,
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+};
+
+module.exports = { registerUser, loginUser };

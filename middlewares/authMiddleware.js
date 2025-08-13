@@ -7,18 +7,18 @@ const authMiddleware = async (req,res,next)=>{
     const token = authorization.split(" ")[1];
 
     const user = await jwt.verify(token, process.env.JWT_SECRET_KEY);
-    // console.log(user);
+    // console.log(user.userId);
 
     if(!user){
         res.status(401).json({
             message: "Unauthorized User"
         })
     }
-
+    const { _id}  = user.userId;
+    // console.log(_id)
     const userFind = await User.find({_id});
+    // console.log(userFind)
 
-    const { _id} = userFind;
-    console.log(_id)
     
     if(userFind.length==0){
         res.status(404).json({
@@ -26,7 +26,7 @@ const authMiddleware = async (req,res,next)=>{
         })
     }
     
-    req.userData = user;
+    req.user = userFind;
     
     next();
 }
